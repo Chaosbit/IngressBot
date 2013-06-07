@@ -1,9 +1,8 @@
 import copy
 import json
+import lxml.html
 import requests
-import S2
-
-from pprint import pprint
+from StringIO import StringIO
 
 HANDSHAKE_PARAMS = {
   "nemesisSoftwareVersion" : "2013-05-23T16:34:52Z fac47da11030 opt", 
@@ -11,30 +10,48 @@ HANDSHAKE_PARAMS = {
 }
 URLS = {
   "CLIENT_LOGIN" : "https://www.google.com/accounts/ClientLogin",
-  "GAME_API" : "https://betaspike.appspot.com"
+  "SERVICE_LOGIN" : "https://accounts.google.com/ServiceLoginAuth",
+  "APPENGINE" : "https://appengine.google.com",
+  "GAME_API" : "https://betaspike.appspot.com",
+  "INGRESS" : "http://www.ingress.com"
 }
 PATHS = {
   "LOGIN" : "/_ah/login",
-  "HANDSHAKE" : "/handshake",
-  "DROP_ITEM" : "/rpc/gameplay/dropItem",
-  "SAY" : "/rpc/player/say",
-  "INVENTORY" : "/rpc/playerUndecorated/getInventory",
-  "PLEXTS" : "/rpc/playerUndecorated/getPaginatedPlexts"
+  "CONFLOGIN" : "/_ah/conflogin",
+  "API" : {
+    "HANDSHAKE" : "/handshake",
+    "DROP_ITEM" : "/rpc/gameplay/dropItem",
+    "SAY" : "/rpc/player/say",
+    "INVENTORY" : "/rpc/playerUndecorated/getInventory",
+    "PLEXTS" : "/rpc/playerUndecorated/getPaginatedPlexts"
+  },
+  "INTEL" : {
+    "BASE" : "/intel",
+    "PLEXTS" : "/rpc/dashboard.getPaginatedPlextsV2"
+  }
 }
 HEADERS = {
   "HANDSHAKE" : {      
     "Accept-Charset" : "utf-8",
     "Cache-Control" : "max-age=0"
   },
-  "REQUEST" : {
+  "API" : {
     "Content-Type" : "application/json;charset=UTF-8", 
     "User-Agent" : "Nemesis (gzip)"
+  },
+  "INTEL" : {
+    "Referer" : r"http://www.ingress.com/intel",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11"
   }
 }
 
 class Api(object):
   def __init__(self, email, password):
-    self.cachedGetMessagesBounds = set()
+    self.headers = copy.deepcopy(HEADERS)
+    self.authApi(email, password)
+    self.authIntel(email, password)
+      
+  def authApi(self, email, password):
     authParams = {"Email":   email, "Passwd":  password, "service": "ah", "source":  "IngressBot", "accountType": "HOSTED_OR_GOOGLE"}
     request =  requests.post(URLS["CLIENT_LOGIN"], params=authParams)
     status = int(request.status_code)
@@ -68,11 +85,10 @@ class Api(object):
       raise RuntimeError("Authentication failed: Bad Response")
     
     request = requests.post(URLS["GAME_API"] + PATHS["LOGIN"], params={"auth" : authToken})
-    self.cookies = request.cookies
-    self.headers = copy.deepcopy(HEADERS)
+    self.cookiesApi = request.cookies
 
     urlParams = {"json" : json.dumps(HANDSHAKE_PARAMS)}
-    request = requests.get(URLS["GAME_API"] + PATHS["HANDSHAKE"], verify=False, params=urlParams, headers=self.headers["HANDSHAKE"], cookies=self.cookies)
+    request = requests.get(URLS["GAME_API"] + PATHS["API"]["HANDSHAKE"], verify=False, params=urlParams, headers=self.headers["HANDSHAKE"], cookies=self.cookiesApi)
     try:
       handshakeResult = json.loads(request.content.replace("while(1);", ""))["result"]
     except:
@@ -81,39 +97,69 @@ class Api(object):
       raise RuntimeError("Software version not up-to-date")
     if("xsrfToken" not in handshakeResult):
       raise RuntimeError("Authentication with Ingress severs failed for unknown reason")
-    self.headers["REQUEST"]["X-XsrfToken"] = handshakeResult["xsrfToken"]
+    self.headers["API"]["X-XsrfToken"] = handshakeResult["xsrfToken"]
     self.nickname = handshakeResult["nickname"]
     self.playerGUID = handshakeResult["playerEntity"][0]
-      
+    
+  def authIntel(self, email, password):
+    params = {"service" : "ah" , "passive" : "true", "continue" : URLS["APPENGINE"] + PATHS["CONFLOGIN"] + "?continue=http://www.ingress.com/intel"}
+    request = requests.get(URLS["SERVICE_LOGIN"], params=params, verify=False)
+    tree = lxml.html.parse(StringIO(request.content))
+    root = tree.getroot()
+    for form in root.xpath('//form[@id="gaia_loginform"]'):
+        for field in form.getchildren():
+            if 'name' in field.keys():
+              name = field.get('name')
+              if name == "dsh":
+                params["dsh"] = field.get('value')
+              elif name == "GALX":
+                params["GALX"] = field.get('value')
+    params["Email"] = email
+    params["Passwd"] = password
+    
+    request = requests.post(URLS["SERVICE_LOGIN"], cookies=request.cookies, data=params, verify=False)
+    tree = lxml.html.parse(StringIO(request.content))
+    root = tree.getroot()
+    for field in root.xpath('//input'):
+      if 'name' in field.keys():
+        if field.get('name') == "state":
+          params["state"] = field.get('value')
+    params["submit_true"] = "Allow"
+    
+    request = requests.post(URLS["APPENGINE"] + PATHS["CONFLOGIN"], cookies=request.cookies, data=params, verify=False)
+    hasSID = False
+    hasCSRF = False
+    for cookie in request.cookies:
+      if cookie.name == "ACSID":
+        hasSID = True
+      if cookie.name == "csrftoken":
+        hasCSRF = True
+        self.headers["INTEL"]["X-CSRFToken"] = cookie.value
+    if not (hasSID and hasCSRF):
+      raise RuntimeError("Authentication failed: Unknown reason")
+    self.cookiesIntel = request.cookies
+  
   def getInventory(self, lastQueryTimestamp):
-    request = requests.post(URLS["GAME_API"] + PATHS["INVENTORY"], headers = self.headers["REQUEST"], data = json.dumps({"params" : {"lastQueryTimestamp": lastQueryTimestamp}}), cookies=self.cookies)
+    request = requests.post(URLS["GAME_API"] + PATHS["API"]["INVENTORY"], headers = self.headers["API"], data = json.dumps({"params" : {"lastQueryTimestamp": lastQueryTimestamp}}), cookies=self.cookiesApi)
     try:
       return json.loads(request.content.replace("while(1);", ""))
     except:
       print request.content
       raise
     
-  def getMessages(self, bounds, lastTimestamp, maxItems, factionOnly):
-    if(self.cachedGetMessagesBounds != set(bounds)):
-      self.cachedGetMessagescellsAsHex = []
-      rect = S2.S2LatLngRect(S2.S2LatLng.FromDegrees(bounds["minLat"], bounds["minLng"]), S2.S2LatLng.FromDegrees(bounds["maxLat"], bounds["maxLng"]))
-      coverer = S2.S2RegionCoverer()
-      coverer.set_min_level(8)
-      coverer.set_max_level(12)
-      cells = coverer.GetCovering(rect)
-      for cell in cells:
-        self.cachedGetMessagescellsAsHex.append("%X" % cell.id())
-      self.cachedGetMessagesBounds = set(bounds)
-    
-    request = requests.post(URLS["GAME_API"] + PATHS["PLEXTS"], verify=False, headers = self.headers["REQUEST"], cookies=self.cookies, data = json.dumps(
-    {"params" : {
-      "desiredNumItems" : str(maxItems),
-      "factionOnly": factionOnly,
-      "maxTimestampMs": -1,
-      "minTimestampMs": lastTimestamp,
-      "cellsAsHex" : self.cachedGetMessagescellsAsHex
-      }
-    }))
+  def getMessages(self, bounds, minTimestamp, maxTimestamp, maxItems, factionOnly):
+    payload = {
+      "factionOnly" : factionOnly,
+      "desiredNumItems" : maxItems,
+      "minLatE6": bounds["minLatE6"],
+      "minLngE6" : bounds["minLngE6"],
+      "maxLatE6" : bounds["maxLatE6"],
+      "maxLngE6" : bounds["maxLngE6"],
+      "minTimestampMs" : minTimestamp,
+      "maxTimestampMs" : maxTimestamp,
+      "method" : "dashboard.getPaginatedPlextsV2"
+    }
+    request = requests.post(URLS["INGRESS"] + PATHS["INTEL"]["PLEXTS"], cookies=self.cookiesIntel, headers=self.headers["INTEL"], data = json.dumps(payload))
     try:
       return json.loads(request.content)
     except:
@@ -121,12 +167,12 @@ class Api(object):
       raise
     
   def say(self, msg, factionOnly=True):
-    requests.post(URLS["GAME_API"] + PATHS["SAY"], headers = self.headers["REQUEST"], data = json.dumps({"params" : {"factionOnly": "true", "message" : msg}}), cookies=self.cookies)
+    requests.post(URLS["GAME_API"] + PATHS["API"]["SAY"], headers = self.headers["API"], data = json.dumps({"params" : {"factionOnly": factionOnly, "message" : msg}}), cookies=self.cookiesApi)
     print "said: " + msg
 
   def dropItem(self, guid):
-    request = requests.post(URLS["GAME_API"] + PATHS["DROP_ITEM"], headers = self.headers["REQUEST"], data = json.dumps(
+    request = requests.post(URLS["GAME_API"] + PATHS["API"]["DROP_ITEM"], headers = self.headers["API"], data = json.dumps(
 {"params" : 
-  {"itemGuid": guid, "knobSyncTimestamp" : "1370219980525", "playerLocation" : "031192E4,00B63F54", "location" : "031192E4,00B63F54"}}), cookies=self.cookies)
+  {"itemGuid": guid, "knobSyncTimestamp" : "1370219980525", "playerLocation" : "031192E4,00B63F54", "location" : "031192E4,00B63F54"}}), cookies=self.cookiesApi)
     print request.content
     #pprint(json.loads(request.content))

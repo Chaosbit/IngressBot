@@ -38,7 +38,7 @@ class FlipCard(GameEntity):
         
 class Inventory(dict):
   def __init__(self):
-    self.lastQueryTimestamp = 0
+    self.lastQueryTimestamp = -1
     self.numKeys = 0
     self.numBursters = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
     self.numResos = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
@@ -136,6 +136,8 @@ class Inventory(dict):
             self[guid] = FlipCard(FlipCard.JARVIS)
             self.numFlipCards[FlipCard.JARVIS] += 1;
           self.stats["shields"][self[guid].cardType]["+"] += 1
+    if(self.lastQueryTimestamp <= 0):
+      self.resetStats()
     self.lastQueryTimestamp = timestamp
 
   def toStrings(self):
@@ -185,8 +187,10 @@ class Inventory(dict):
     minutes, seconds = divmod(remainder, 60)
     deltaStr = ""
     if(delta.days > 0):
-      deltaStr += delta.days + "d "
-    deltaStr += str(hours) + "h " + str(minutes) + "m"
+      deltaStr += str(delta.days) + "d "
+    if(hours > 0):
+      deltaStr += str(hours) + "h "
+    deltaStr += str(minutes) + "m"
     lines.append("Stats since " + self.stats["startTime"].strftime("%a, %d. %b %Y %H:%M") + " (" + deltaStr + " ago)")
     
     line = ""
