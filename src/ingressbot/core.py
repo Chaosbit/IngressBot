@@ -18,7 +18,6 @@ class Ingressbot(object):
     self.pidfile_path =  '/var/lock/ingressbot.pid'
     self.pidfile_timeout = 5
     self.logger = logging.getLogger("ingressbot")
-    
     self.inventory = Inventory()
     self.inventoryLock = Lock()
     self.playerHistory = dict()
@@ -72,7 +71,7 @@ class Ingressbot(object):
       self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
     finally:
       self.inventoryLock.release()
-    self.logger.critical("stopped")
+    self.logger.info("stopped")
 
   def refreshInventory(self):
     result = self.api.getInventory(self.inventory.lastQueryTimestamp);

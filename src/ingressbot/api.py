@@ -53,7 +53,7 @@ class Api(object):
       
   def authApi(self, email, password):
     authParams = {"Email":   email, "Passwd":  password, "service": "ah", "source":  "IngressBot", "accountType": "HOSTED_OR_GOOGLE"}
-    request =  requests.post(URLS["CLIENT_LOGIN"], params=authParams)
+    request =  requests.post(URLS["CLIENT_LOGIN"], data=authParams)
     status = int(request.status_code)
     response = dict(x.split("=") for x in request.content.split("\n") if x)
     if(status == 200):
@@ -84,7 +84,7 @@ class Api(object):
     else:
       raise RuntimeError("Authentication failed: Bad Response")
     
-    request = requests.post(URLS["GAME_API"] + PATHS["LOGIN"], params={"auth" : authToken})
+    request = requests.get(URLS["GAME_API"] + PATHS["LOGIN"], params={"auth" : authToken})
     self.cookiesApi = request.cookies
 
     urlParams = {"json" : json.dumps(HANDSHAKE_PARAMS)}
