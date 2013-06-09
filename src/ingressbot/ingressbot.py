@@ -13,8 +13,9 @@ logger.addHandler(syslogHandler)
 
 try:
   bot = core.Ingressbot()
-  daemon = daemon.runner.DaemonRunner(bot)
-  daemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
-  daemon.do_action()
+  bot.run()
+#  daemon = daemon.runner.DaemonRunner(bot)
+#  daemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
+#  daemon.do_action()
 except Exception as e:
   logger.critical("ex: " + str(type(e)) + ": " + e.message)

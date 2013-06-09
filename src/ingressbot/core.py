@@ -95,48 +95,56 @@ class Ingressbot(object):
     response = self.api.getMessages(self.cfg["bounds"], self.lastChatTimestamp, -1, 100, False)
     if "result" in response:
       result = response["result"]
-      self.trackPlayers(result)
-      if(len(result) > 0):
-        self.lastChatTimestamp = result[0][1]
+      if(len(result) == 0): return
+      self.lastChatTimestamp = result[0][1]
       thisMessages = set()
       for message in result:
         thisMessages.add(message[0])
         if(not message[0] in self.lastMessages):
           plext = message[2]["plext"]
-          sender = None
-          text = None
-          for markup in plext["markup"]:
-            if(markup[0] == "TEXT"):
-              text = markup[1]["plain"].encode("utf-8")
-            elif(markup[0] == "SENDER"):
-              sender = markup[1]["guid"].encode("utf-8")
-          if(sender is not None and text is not None):
-            self.processCommand(sender, text)
+          if plext["plextType"] == "SYSTEM_BROADCAST" or plext["plextType"] == "SYSTEM_NARROWCAST":
+            self.trackPlayers(plext, long(message[1]))
+          elif plext["plextType"] == "PLAYER_GENERATED":
+            if plext["markup"][0][0] == "SECURE":
+              sender = None
+              text = None
+              for markup in plext["markup"]:
+                if(markup[0] == "TEXT"):
+                  text = markup[1]["plain"].encode("utf-8")
+                elif(markup[0] == "SENDER"):
+                  sender = markup[1]["guid"].encode("utf-8")
+              if(sender is not None and text is not None and text.startswith("!")):
+                self.processCommand(sender, text)
       self.lastMessages = thisMessages
       
   def chatLookback(self, desiredMinTs, initialMaxTs):
     maxTs = long(initialMaxTs)
     while (maxTs > long(desiredMinTs)):
-      result = self.api.getMessages(self.cfg["bounds"], desiredMinTs, maxTs, 100, False)["result"]
-      self.trackPlayers(result)
-      if(len(result) == 0):
-        break
-      lowestTs = maxTs
-      for message in result:
-        lowestTs = min(long(message[1]), lowestTs)
-      if(maxTs == lowestTs):
-        break
-      maxTs = lowestTs
+      response = self.api.getMessages(self.cfg["bounds"], desiredMinTs, maxTs, 100, False)
+      if "result" in response:
+        result = response["result"]
+        if(len(result) == 0):
+          break
+        lowestTs = maxTs
+        for message in result:
+          lowestTs = min(long(message[1]), lowestTs)
+          plext = message[2]["plext"]
+          if plext["plextType"] == "SYSTEM_BROADCAST" or plext["plextType"] == "SYSTEM_NARROWCAST":
+            self.trackPlayers(plext, long(message[1]))
+        if(maxTs == lowestTs):
+          break
+        maxTs = lowestTs
       
   def processCommand(self, sender, message):
-    if(sender != self.api.playerGUID or not message.startswith('!')):
-      return
+    if not message.startswith('!'): return
     tokens = message.split(' ')
     if(len(tokens) == 0):
       return
+    
     if(tokens[0] == "!helo"):
       self.api.say("Hello World", True)
     elif(tokens[0] == "!stat"):
+      if sender != self.api.playerGUID: return
       if(len(tokens) == 1):
         self.inventoryLock.acquire()
         lines = self.inventory.statsToStrings()
@@ -166,26 +174,22 @@ class Ingressbot(object):
         else:
           self.api.say("Can't remember " + player)
 
-  def trackPlayers(self, result):
-    for message in result:
-      plext = message[2]["plext"]
-      if plext["plextType"] == "SYSTEM_BROADCAST":
-        markups = plext["markup"]
-        if "team" in markups[0][1]:
-          player = markups[0][1]["plain"].encode("utf-8").lower()
-          team = markups[0][1]["team"].encode("utf-8")
-          timestamp = long(message[1])
-          portal = None
-          for markup in markups:
-            if markup[0] == "PORTAL":
-              portal = markup[1]["name"].encode("utf-8")
-              break
-          if portal != None:
-            if player in self.playerHistory:
-              entry = self.playerHistory[player]
-            else:
-              entry = {"when" : long(-1), "where" : ""}
-              self.playerHistory[player] = entry
-            if(entry["when"] < timestamp):
-              entry["when"] = timestamp
-              entry["where"] = portal
+  def trackPlayers(self, plext, timestamp):
+    markups = plext["markup"]
+    player = None
+    portal = None
+    for markup in markups:
+      if markup[0] == "PLAYER":
+        player = markup[1]["plain"].encode("utf-8")
+      elif markup[0] == "PORTAL":
+        portal = markup[1]["name"].encode("utf-8")
+    if player is not None and portal is not None:
+      key = player.lower()
+      if key in self.playerHistory:
+        entry = self.playerHistory[key]
+      else:
+        entry = {"when" : long(-1), "where" : ""}
+        self.playerHistory[key] = entry
+      if(entry["when"] < timestamp):
+        entry["when"] = timestamp
+        entry["where"] = portal
