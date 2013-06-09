@@ -11,11 +11,11 @@ syslogHandler = logging.handlers.SysLogHandler(address="/dev/log", facility=logg
 syslogHandler.setFormatter(logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s', '%b %e %H:%M:%S'))
 logger.addHandler(syslogHandler)
 
-bot = core.Ingressbot()
-daemon = daemon.runner.DaemonRunner(bot)
-daemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
-
 try:
+  bot = core.Ingressbot()
+  daemon = daemon.runner.DaemonRunner(bot)
+  daemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
+
   daemon.do_action()
 except Exception as e:
   logger.critical("ex: " + str(type(e)) + ": " + e.message)
