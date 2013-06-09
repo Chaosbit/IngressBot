@@ -194,7 +194,7 @@ class Inventory(dict):
     lines.append("Stats since " + self.stats["startTime"].strftime("%a, %d. %b %Y %H:%M") + " (" + deltaStr + " ago)")
     
     line = ""
-    for l in range(1, 8):
+    for l in range(1, 9):
       bursters = self.stats["bursters"][l]
       if(bursters["+"] != 0 or bursters["-"] != 0):
         line += "L" + str(l) + "(+" + str(bursters["+"]) + ",-" + str(bursters["-"]) + ") "
@@ -202,7 +202,7 @@ class Inventory(dict):
       lines.append("B: " + line)
 
     line = ""
-    for l in range(1, 8):
+    for l in range(1, 9):
       resos = self.stats["resos"][l]
       if(resos["+"] != 0 or resos["-"] != 0):
         line += "L" + str(l) + "(+" + str(resos["+"]) + ",-" + str(resos["-"]) + ") "
@@ -210,7 +210,7 @@ class Inventory(dict):
       lines.append("R: " + line)
       
     line = ""
-    for l in range(1, 8):
+    for l in range(1, 9):
       cubes = self.stats["cubes"][l]
       if(cubes["+"] != 0 or cubes["-"] != 0):
         line += "L" + str(l) + "(+" + str(cubes["+"]) + ",-" + str(cubes["-"]) + ") "
