@@ -68,6 +68,8 @@ class Ingressbot(object):
       with open(os.path.expanduser("~/.ingressbot.pkl"), "wb") as f:
         pickler = Pickler(f)
         pickler.dump(self.inventory)
+    except Exception as e:
+      self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
     finally:
       self.inventoryLock.release()
     self.logger.critical("stopped")
