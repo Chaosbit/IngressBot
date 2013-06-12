@@ -1,5 +1,5 @@
 from api import Api
-from inventory import Inventory
+from inventory import Inventory, Shield, FlipCard
 
 import json
 import os.path
@@ -147,7 +147,7 @@ class Ingressbot(object):
       if sender != self.api.playerGUID: return
       if(len(tokens) == 1):
         self.inventoryLock.acquire()
-        lines = self.inventory.statsToStrings()
+        lines = self.statsToStrings()
         self.inventoryLock.release()
         for line in lines:
           self.api.say(line)
@@ -179,9 +179,9 @@ class Ingressbot(object):
     player = None
     portal = None
     for markup in markups:
-      if markup[0] == "PLAYER":
+      if player is None and markup[0] == "PLAYER":
         player = markup[1]["plain"].encode("utf-8")
-      elif markup[0] == "PORTAL":
+      elif portal is None and markup[0] == "PORTAL":
         portal = markup[1]["name"].encode("utf-8")
     if player is not None and portal is not None:
       key = player.lower()
@@ -193,3 +193,66 @@ class Ingressbot(object):
       if(entry["when"] < timestamp):
         entry["when"] = timestamp
         entry["where"] = portal
+        
+  def statsToStrings(self):
+    lines =  []
+    delta = datetime.datetime.now() - self.inventory.stats["startTime"]
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    deltaStr = ""
+    if(delta.days > 0):
+      deltaStr += str(delta.days) + "d "
+    if(hours > 0):
+      deltaStr += str(hours) + "h "
+    deltaStr += str(minutes) + "m"
+    lines.append("Stats since " + self.inventory.stats["startTime"].strftime("%a, %d. %b %Y %H:%M") + " (" + deltaStr + " ago)")
+
+    line = ""
+    for l in range(1, 9):
+      bursters = self.inventory.stats["bursters"][l]
+      if(bursters["+"] != 0 or bursters["-"] != 0):
+        line += "L" + str(l) + "(+" + str(bursters["+"]) + ",-" + str(bursters["-"]) + ") "
+    if(len(line) > 0):
+      lines.append("B: " + line)
+
+    line = ""
+    for l in range(1, 9):
+      resos = self.inventory.stats["resos"][l]
+      if(resos["+"] != 0 or resos["-"] != 0):
+        line += "L" + str(l) + "(+" + str(resos["+"]) + ",-" + str(resos["-"]) + ") "
+    if(len(line) > 0):
+      lines.append("R: " + line)
+
+    line = ""
+    for l in range(1, 9):
+      cubes = self.inventory.stats["cubes"][l]
+      if(cubes["+"] != 0 or cubes["-"] != 0):
+        line += "L" + str(l) + "(+" + str(cubes["+"]) + ",-" + str(cubes["-"]) + ") "
+    if(len(line) > 0):
+      lines.append("C: " + line)
+    line = ""
+    shields = self.inventory.stats["shields"][Shield.COMMON]
+    if(shields["+"] != 0 or shields["-"] != 0):
+      line += "C (+" + str(shields["+"]) + ",-" + str(shields["-"]) + ") "
+    shields = self.inventory.stats["shields"][Shield.RARE]
+    if(shields["+"] != 0 or shields["-"] != 0):
+      line += "R (+" + str(shields["+"]) + ",-" + str(shields["-"]) + ") "
+    shields = self.inventory.stats["shields"][Shield.VERY_RARE]
+    if(shields["+"] != 0 or shields["-"] != 0):
+      line += "VR (+" + str(shields["+"]) + ",-" + str(shields["-"]) + ") "
+    if(len(line) > 0):
+      lines.append("S: " + line)
+
+    line = ""
+    flipcards = self.inventory.stats["flipcards"][FlipCard.ADA]
+    if(flipcards["+"] != 0 or flipcards["-"] != 0):
+      line += "A (+" + str(flipcards["+"]) + ",-" + str(flipcards["-"]) + ") "
+    flipcards = self.inventory.stats["flipcards"][FlipCard.JARVIS]
+    if(flipcards["+"] != 0 or flipcards["-"] != 0):
+      line += "J (+" + str(flipcards["+"]) + ",-" + str(flipcards["-"]) + ") "
+    if(len(line) > 0):
+      lines.append("F: " + line)
+
+    if(len(lines) == 1):
+      lines.append("Nothing happened")
+    return lines

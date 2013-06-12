@@ -5,7 +5,7 @@ import requests
 from StringIO import StringIO
 
 HANDSHAKE_PARAMS = {
-  "nemesisSoftwareVersion" : "2013-05-23T16:34:52Z fac47da11030 opt", 
+  "nemesisSoftwareVersion" : "2013-06-07T16:49:41Z 63e36378f5e8 opt", 
   "deviceSoftwareVersion" : "4.1.1"
 }
 URLS = {
