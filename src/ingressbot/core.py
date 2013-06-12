@@ -1,5 +1,5 @@
 from api import Api
-from inventory import Inventory, Shield, FlipCard
+from inventory import Inventory, PortalMod, Shield, FlipCard
 
 import json
 import os.path
@@ -50,6 +50,7 @@ class Ingressbot(object):
           t.join(timeout=3600.0)
     except Exception as e:
       self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
+
     
   def stop(self):
     try:
@@ -158,9 +159,9 @@ class Ingressbot(object):
         self.api.say("Stats resetted")
     elif(tokens[0] == "!seen"):
       if(len(tokens) == 2):
-        player = tokens[1].lower()
-        if player in self.playerHistory:
-          entry = self.playerHistory[player]
+        key = tokens[1].lower()
+        if key in self.playerHistory:
+          entry = self.playerHistory[key]
           delta = datetime.datetime.now() - datetime.datetime.fromtimestamp(entry["when"] / 1000.0)
           hours, remainder = divmod(delta.seconds, 3600)
           minutes, seconds = divmod(remainder, 60)
@@ -170,9 +171,9 @@ class Ingressbot(object):
           if(hours > 0):
             deltaStr += str(hours) + "h "
           deltaStr += str(minutes) + "m"
-          self.api.say(player + " was last seen " + deltaStr + " ago on " + entry["where"])
+          self.api.say(entry["player"] + " was last seen " + deltaStr + " ago on " + entry["where"])
         else:
-          self.api.say("Can't remember " + player)
+          self.api.say("Can't remember " + key)
 
   def trackPlayers(self, plext, timestamp):
     markups = plext["markup"]
@@ -188,7 +189,7 @@ class Ingressbot(object):
       if key in self.playerHistory:
         entry = self.playerHistory[key]
       else:
-        entry = {"when" : long(-1), "where" : ""}
+        entry = {"when" : long(-1), "where" : "", "player" : player}
         self.playerHistory[key] = entry
       if(entry["when"] < timestamp):
         entry["when"] = timestamp
@@ -231,13 +232,13 @@ class Ingressbot(object):
     if(len(line) > 0):
       lines.append("C: " + line)
     line = ""
-    shields = self.inventory.stats["shields"][Shield.COMMON]
+    shields = self.inventory.stats["shields"][PortalMod.COMMON]
     if(shields["+"] != 0 or shields["-"] != 0):
       line += "C (+" + str(shields["+"]) + ",-" + str(shields["-"]) + ") "
-    shields = self.inventory.stats["shields"][Shield.RARE]
+    shields = self.inventory.stats["shields"][PortalMod.RARE]
     if(shields["+"] != 0 or shields["-"] != 0):
       line += "R (+" + str(shields["+"]) + ",-" + str(shields["-"]) + ") "
-    shields = self.inventory.stats["shields"][Shield.VERY_RARE]
+    shields = self.inventory.stats["shields"][PortalMod.VERY_RARE]
     if(shields["+"] != 0 or shields["-"] != 0):
       line += "VR (+" + str(shields["+"]) + ",-" + str(shields["-"]) + ") "
     if(len(line) > 0):

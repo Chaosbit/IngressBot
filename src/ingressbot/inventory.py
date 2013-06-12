@@ -11,6 +11,7 @@ class LevelEntity(GameEntity):
     self.level = level
         
 class PortalMod(GameEntity):
+  COMMON, RARE, VERY_RARE = range(3)
   pass
 
 class Burster(LevelEntity):
@@ -26,7 +27,26 @@ class PowerCube(LevelEntity):
     super(PowerCube, self).__init__(level)
         
 class Shield(PortalMod):
-  COMMON, RARE, VERY_RARE = range(3)
+  def __init__(self, rarity):
+    self.rarity = rarity
+    
+class ForceAmp(PortalMod):
+  def __init__(self, rarity):
+    self.rarity = rarity
+    
+class HeatSink(PortalMod):
+  def __init__(self, rarity):
+    self.rarity = rarity
+    
+class LinkAmplifier(PortalMod):
+  def __init__(self, rarity):
+    self.rarity = rarity
+    
+class Multihack(PortalMod):
+  def __init__(self, rarity):
+    self.rarity = rarity
+    
+class Turret(PortalMod):
   def __init__(self, rarity):
     self.rarity = rarity
         
@@ -44,7 +64,12 @@ class Inventory(dict):
     self.numResos = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
     self.numCubes = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
     self.numFlipCards = {FlipCard.ADA : 0, FlipCard.JARVIS : 0}
-    self.numShields = {Shield.COMMON : 0, Shield.RARE : 0, Shield.VERY_RARE : 0}
+    self.numShields = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
+    self.numForceAmps = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
+    self.numHeatSinks = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
+    self.numLinkAmplifiers = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
+    self.numMultihacks = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
+    self.numTurrets = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
     self.resetStats()
     
   def processGameBasket(self, result):
@@ -94,6 +119,12 @@ class Inventory(dict):
           pass
         try:
           resourceType = item[2]["modResource"]["resourceType"]
+          if(item[2]["modResource"]["rarity"] == "COMMON"):
+            rarity = PortalMod.COMMON
+          elif(item[2]["modResource"]["rarity"] == "RARE"):
+            rarity = PortalMod.RARE
+          elif(item[2]["modResource"]["rarity"] == "VERY_RARE"):
+            rarity = PortalMod.VERY_RARE
         except:
           pass
 
@@ -112,18 +143,6 @@ class Inventory(dict):
           self[guid] = PowerCube(level)
           self.numCubes[level] += 1 
           self.stats["cubes"][level]["+"] += 1
-        elif(resourceType == "RES_SHIELD"):
-          rarity = item[2]["modResource"]["rarity"]
-          if(rarity == "COMMON"):
-            self[guid] = Shield(Shield.COMMON)
-            self.numShields[Shield.COMMON] += 1;
-          elif(rarity == "RARE"):
-            self[guid] = Shield(Shield.RARE)
-            self.numShields[Shield.RARE] += 1;
-          elif(rarity == "VERY_RARE"):
-            self[guid] = Shield(Shield.VERY_RARE)
-            self.numShields[Shield.VERY_RARE] += 1;
-          self.stats["shields"][self[guid].rarity]["+"] += 1
         elif(resourceType == "PORTAL_LINK_KEY"):
           self[guid] = PortalKey()
           self.numKeys += 1
@@ -136,36 +155,87 @@ class Inventory(dict):
             self[guid] = FlipCard(FlipCard.JARVIS)
             self.numFlipCards[FlipCard.JARVIS] += 1;
           self.stats["shields"][self[guid].cardType]["+"] += 1
+        elif(resourceType == "RES_SHIELD"):
+          self[guid] = Shield(rarity)
+          self.numShields[rarity] += 1;
+          self.stats["shields"][rarity]["+"] += 1
+        elif(resourceType == "HEATSINK"):
+          self[guid] = HeatSink(rarity)
+          self.numHeatSinks[rarity] += 1;
+          self.stats["heatsinks"][rarity]["+"] += 1
+        elif(resourceType == "TURRET"):
+          self[guid] = Turret(rarity)
+          self.numTurrets[rarity] += 1;
+          self.stats["turrets"][rarity]["+"] += 1
+        elif(resourceType == "LINK_AMPLIFIER"):
+          self[guid] = LinkAmplifier(rarity)
+          self.numLinkAmplifiers[rarity] += 1;
+          self.stats["linkamplifiers"][rarity]["+"] += 1
+        elif(resourceType == "FORCE_AMP"):
+          self[guid] = ForceAmp(rarity)
+          self.numForceAmps[rarity] += 1;
+          self.stats["forceamps"][rarity]["+"] += 1
+        elif(resourceType == "MULTIHACK"):
+          self[guid] = Multihack(rarity)
+          self.numMultihacks[rarity] += 1;
+          self.stats["multihacks"][rarity]["+"] += 1
+        else:
+          print item
     if(self.lastQueryTimestamp <= 0):
       self.resetStats()
     self.lastQueryTimestamp = timestamp
 
   def toStrings(self):
     lines = []
-    line = "B: "
+    line = "Bursters:\t\t"
     for num in self.numBursters.itervalues():
       line += str(num) + " "
     lines.append(line)
 
-    line = "R: "
+    line = "Resonators:\t\t"
     for num in self.numResos.itervalues():
       line += str(num) + " "
     lines.append(line)
 
-    line = "C: "
+    line = "Powercubes:\t\t"
     for num in self.numCubes.itervalues():
       line += str(num) + " "
     lines.append(line)
 
-    line = "S: "
+    line = "Shield:\t\t"
     for num in self.numShields.itervalues():
       line += str(num) + " "
     lines.append(line)
-
-    line = "F: "
+    
+    line = "Flipcards:\t\t"
     for num in self.numFlipCards.itervalues():
       line += str(num) + " "
+    
+    line = "ForceAmps:\t\t"
+    for num in self.numForceAmps.itervalues():
+      line += str(num) + " "
     lines.append(line)
+
+    line = "Heatsinks:\t\t"
+    for num in self.numHeatSinks.itervalues():
+      line += str(num) + " "
+    lines.append(line)
+    
+    line = "LinkAmps:\t\t"
+    for num in self.numLinkAmplifiers.itervalues():
+      line += str(num) + " "
+    lines.append(line)
+    
+    line = "Multihacks:\t\t"
+    for num in self.numMultihacks.itervalues():
+      line += str(num) + " "
+    lines.append(line)
+    
+    line = "Turrets:\t\t"
+    for num in self.numTurrets.itervalues():
+      line += str(num) + " "
+    lines.append(line)
+
     lines.append("K: " + str(self.numKeys))
     lines.append("Total: " + str(len(self)))
     return lines
@@ -177,5 +247,10 @@ class Inventory(dict):
       "resos" : {1: {"+" : 0, "-" : 0}, 2: {"+" : 0, "-" : 0}, 3: {"+" : 0, "-" : 0}, 4: {"+" : 0, "-" : 0}, 5: {"+" : 0, "-" : 0}, 6: {"+" : 0, "-" : 0}, 7: {"+" : 0, "-" : 0}, 8: {"+" : 0, "-" : 0}},
       "cubes" : {1: {"+" : 0, "-" : 0}, 2: {"+" : 0, "-" : 0}, 3: {"+" : 0, "-" : 0}, 4: {"+" : 0, "-" : 0}, 5: {"+" : 0, "-" : 0}, 6: {"+" : 0, "-" : 0}, 7: {"+" : 0, "-" : 0}, 8: {"+" : 0, "-" : 0}},
       "flipcards" : {FlipCard.ADA : {"+" : 0, "-" : 0}, FlipCard.JARVIS : {"+" : 0, "-" : 0}},
-      "shields" : {Shield.COMMON : {"+" : 0, "-" : 0}, Shield.RARE : {"+" : 0, "-" : 0}, Shield.VERY_RARE : {"+" : 0, "-" : 0}}
+      "shields" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},
+      "forceamps" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},
+      "heatsinks" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},
+      "linkamplifiers" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},
+      "multihacks" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},
+      "turrets" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}}
     }

@@ -118,6 +118,19 @@ class Api(object):
     params["Passwd"] = password
     
     request = requests.post(URLS["SERVICE_LOGIN"], cookies=request.cookies, data=params, verify=False)
+    hasSID = False
+    hasCSRF = False
+    for cookie in request.cookies:
+      if cookie.name == "ACSID":
+        hasSID = True
+      if cookie.name == "csrftoken":
+        hasCSRF = True
+        self.headers["INTEL"]["X-CSRFToken"] = cookie.value
+        
+    if hasSID and hasCSRF:
+      self.cookiesIntel = request.cookies
+      return
+    
     tree = lxml.html.parse(StringIO(request.content))
     root = tree.getroot()
     for field in root.xpath('//input'):
