@@ -1,6 +1,3 @@
-from api import Api
-from inventory import Inventory, PortalMod, Shield, FlipCard
-
 import json
 import os.path
 import datetime
@@ -8,6 +5,10 @@ from pickle import Pickler, Unpickler
 from threading import Lock, Thread
 from Thread import TimerThread
 import logging
+import traceback
+
+from api import Api
+from inventory import Inventory, PortalMod, Shield, FlipCard
 
 class Ingressbot(object):
 
@@ -39,17 +40,14 @@ class Ingressbot(object):
     except:
       pass
     
-    try:
-      self.threads.append(TimerThread(interval=10, target=self.refreshInventory))
-      self.threads.append(TimerThread(interval=5, setup=self.setupRefreshChat, target=self.refreshChat))
-      for t in self.threads:
-        t.start()
-      self.logger.info("started")
-      for t in self.threads:
-        while t.is_alive():
-          t.join(timeout=3600.0)
-    except Exception as e:
-      self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
+    self.threads.append(TimerThread(interval=10, target=self.refreshInventory))
+    self.threads.append(TimerThread(interval=5, setup=self.setupRefreshChat, target=self.refreshChat))
+    for t in self.threads:
+      t.start()
+    self.logger.info("started")
+    for t in self.threads:
+      while t.is_alive():
+        t.join(timeout=3600.0)
 
     
   def stop(self):
@@ -57,66 +55,76 @@ class Ingressbot(object):
       for t in self.threads:
         try:
           t.interrupt()
-        except Exception as e:
-          self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
+        except:
+          pass
       for t in self.threads:
         try:
           t.join()
-        except Exception as e:
-          self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
+        except:
+          pass
       self.inventoryLock.acquire()
       with open(os.path.expanduser("~/.ingressbot.pkl"), "wb") as f:
         pickler = Pickler(f)
         pickler.dump(self.inventory)
-    except Exception as e:
-      self.logger.critical("ex: " + str(type(e)) + ": " + e.message)
     finally:
       self.inventoryLock.release()
     self.logger.info("stopped")
 
   def refreshInventory(self):
-    result = self.api.getInventory(self.inventory.lastQueryTimestamp);
-    if("gameBasket" in result):
-      try:
-        self.inventoryLock.acquire()
-        self.inventory.processGameBasket(result)
-      finally:
-        self.inventoryLock.release()
+    try:
+      result = self.api.getInventory(self.inventory.lastQueryTimestamp);
+      if("gameBasket" in result):
+        try:
+          self.inventoryLock.acquire()
+          self.inventory.processGameBasket(result)
+        finally:
+          self.inventoryLock.release()
+    except Exception as e:
+      self.logger.critical("Exception: " + str(type(e)) + ": " + e.message)
+      self.logger.critical("Stacktrace: " + traceback.format_exc())
         
   def setupRefreshChat(self):
-    result = self.api.getMessages(self.cfg["bounds"], -1, -1, 1, False)["result"]
-    self.lastChatTimestamp = result[0][1]
-    Thread(target=self.chatLookback, args=(long(self.lastChatTimestamp)-(long(self.cfg["chatLookbackHours"])*3600000), self.lastChatTimestamp)).start()
+    try:
+      result = self.api.getMessages(self.cfg["bounds"], -1, -1, 1, False)["result"]
+      self.lastChatTimestamp = result[0][1]
+      Thread(target=self.chatLookback, args=(long(self.lastChatTimestamp)-(long(self.cfg["chatLookbackHours"])*3600000), self.lastChatTimestamp)).start()
 
-    self.lastMessages = set()
-    for message in result:
-      self.lastMessages.add(message[0])
+      self.lastMessages = set()
+      for message in result:
+        self.lastMessages.add(message[0])
+    except Exception as e:
+      self.logger.critical("Exception: " + str(type(e)) + ": " + e.message)
+      self.logger.critical("Stacktrace: " + traceback.format_exc())
 
   def refreshChat(self):
-    response = self.api.getMessages(self.cfg["bounds"], self.lastChatTimestamp, -1, 100, False)
-    if "result" in response:
-      result = response["result"]
-      if(len(result) == 0): return
-      self.lastChatTimestamp = result[0][1]
-      thisMessages = set()
-      for message in result:
-        thisMessages.add(message[0])
-        if(not message[0] in self.lastMessages):
-          plext = message[2]["plext"]
-          if plext["plextType"] == "SYSTEM_BROADCAST" or plext["plextType"] == "SYSTEM_NARROWCAST":
-            self.trackPlayers(plext, long(message[1]))
-          elif plext["plextType"] == "PLAYER_GENERATED":
-            if plext["markup"][0][0] == "SECURE":
-              sender = None
-              text = None
-              for markup in plext["markup"]:
-                if(markup[0] == "TEXT"):
-                  text = markup[1]["plain"].encode("utf-8")
-                elif(markup[0] == "SENDER"):
-                  sender = markup[1]["guid"].encode("utf-8")
-              if(sender is not None and text is not None and text.startswith("!")):
-                self.processCommand(sender, text)
-      self.lastMessages = thisMessages
+    try:
+      response = self.api.getMessages(self.cfg["bounds"], self.lastChatTimestamp, -1, 100, False)
+      if "result" in response:
+        result = response["result"]
+        if(len(result) == 0): return
+        self.lastChatTimestamp = result[0][1]
+        thisMessages = set()
+        for message in result:
+          thisMessages.add(message[0])
+          if(not message[0] in self.lastMessages):
+            plext = message[2]["plext"]
+            if plext["plextType"] == "SYSTEM_BROADCAST" or plext["plextType"] == "SYSTEM_NARROWCAST":
+              self.trackPlayers(plext, long(message[1]))
+            elif plext["plextType"] == "PLAYER_GENERATED":
+              if plext["markup"][0][0] == "SECURE":
+                sender = None
+                text = None
+                for markup in plext["markup"]:
+                  if(markup[0] == "TEXT"):
+                    text = markup[1]["plain"].encode("utf-8")
+                  elif(markup[0] == "SENDER"):
+                    sender = markup[1]["guid"].encode("utf-8")
+                if(sender is not None and text is not None and text.startswith("!")):
+                  self.processCommand(sender, text)
+        self.lastMessages = thisMessages
+    except Exception as e:
+      self.logger.critical("Exception: " + str(type(e)) + ": " + e.message)
+      self.logger.critical("Stacktrace: " + traceback.format_exc())
       
   def chatLookback(self, desiredMinTs, initialMaxTs):
     maxTs = long(initialMaxTs)

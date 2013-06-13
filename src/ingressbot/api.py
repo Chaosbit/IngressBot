@@ -182,10 +182,3 @@ class Api(object):
   def say(self, msg, factionOnly=True):
     requests.post(URLS["GAME_API"] + PATHS["API"]["SAY"], headers = self.headers["API"], data = json.dumps({"params" : {"factionOnly": factionOnly, "message" : msg}}), cookies=self.cookiesApi)
     print "said: " + msg
-
-  def dropItem(self, guid):
-    request = requests.post(URLS["GAME_API"] + PATHS["API"]["DROP_ITEM"], headers = self.headers["API"], data = json.dumps(
-{"params" : 
-  {"itemGuid": guid, "knobSyncTimestamp" : "1370219980525", "playerLocation" : "031192E4,00B63F54", "location" : "031192E4,00B63F54"}}), cookies=self.cookiesApi)
-    print request.content
-    #pprint(json.loads(request.content))
