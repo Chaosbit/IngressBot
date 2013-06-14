@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import lxml.html
 import requests
 from StringIO import StringIO
@@ -50,6 +51,7 @@ class Api(object):
     self.headers = copy.deepcopy(HEADERS)
     self.authApi(email, password)
     self.authIntel(email, password)
+    self.logger = logging.getLogger("ingressbot")
       
   def authApi(self, email, password):
     authParams = {"Email":   email, "Passwd":  password, "service": "ah", "source":  "IngressBot", "accountType": "HOSTED_OR_GOOGLE"}
@@ -157,7 +159,7 @@ class Api(object):
     try:
       return json.loads(request.content.replace("while(1);", ""))
     except:
-      print request.content
+      self.logger.critical(request.content)
       raise
     
   def getMessages(self, bounds, minTimestamp, maxTimestamp, maxItems, factionOnly):
@@ -176,9 +178,8 @@ class Api(object):
     try:
       return json.loads(request.content)
     except:
-      print request.content
+      self.logger.critical(request.content)
       raise
     
   def say(self, msg, factionOnly=True):
     requests.post(URLS["GAME_API"] + PATHS["API"]["SAY"], headers = self.headers["API"], data = json.dumps({"params" : {"factionOnly": factionOnly, "message" : msg}}), cookies=self.cookiesApi)
-    print "said: " + msg
