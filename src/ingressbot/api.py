@@ -94,7 +94,7 @@ class Api(object):
     try:
       handshakeResult = json.loads(request.content.replace("while(1);", ""))["result"]
     except:
-      raise RuntimeError("Authentication with Ingress severs failed for unknown reason")
+      raise RuntimeError("Authentication with Ingress severs failed for unknown reason.\n" + "headers: " + request.headers + "\ncontent: " + request.content)
     if(handshakeResult["versionMatch"] != "CURRENT"):
       raise RuntimeError("Software version not up-to-date")
     if("xsrfToken" not in handshakeResult):
@@ -159,7 +159,7 @@ class Api(object):
     try:
       return json.loads(request.content.replace("while(1);", ""))
     except:
-      self.logger.critical(request.content)
+      
       raise
     
   def getMessages(self, bounds, minTimestamp, maxTimestamp, maxItems, factionOnly):
