@@ -367,7 +367,7 @@ def main(argv=None):
       pwd = json.load(f)
     with open(os.path.expanduser("~/.ingressbot.cfg"), "rb") as f:
       cfg = json.load(f)
-    
+
     bot = Ingressbot(pwd, cfg)
     if daemonize:
       daemon = daemon.runner.DaemonRunner(bot)
@@ -375,7 +375,6 @@ def main(argv=None):
       daemon.do_action()
     else:
       bot.run()
-
   except Exception as e:
     logger.critical("Exception: " + str(type(e)) + ": " + e.message)
     logger.critical("Stacktrace: " + traceback.format_exc())
