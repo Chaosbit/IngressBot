@@ -64,17 +64,17 @@ class Inventory(dict):
   def __init__(self):
     self.lastQueryTimestamp = -1
     self.numKeys = 0
-    self.numBursters = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
-    self.numResos = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
-    self.numCubes = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
-    self.numMedias = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
-    self.numFlipCards = {FlipCard.ADA : 0, FlipCard.JARVIS : 0}
-    self.numShields = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
-    self.numForceAmps = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
-    self.numHeatSinks = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
-    self.numLinkAmplifiers = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
-    self.numMultihacks = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
-    self.numTurrets = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
+    self.bursters = {1:dict(),2:dict(),3:dict(),4:dict(),5:dict(),6:dict(),7:dict(),8:dict()}
+    self.resonators = {1:dict(),2:dict(),3:dict(),4:dict(),5:dict(),6:dict(),7:dict(),8:dict()}
+    self.cubes = {1:dict(),2:dict(),3:dict(),4:dict(),5:dict(),6:dict(),7:dict(),8:dict()}
+    self.medias = {1:dict(),2:dict(),3:dict(),4:dict(),5:dict(),6:dict(),7:dict(),8:dict()}
+    self.flipCards = {FlipCard.ADA:dict(),FlipCard.JARVIS:dict()}
+    self.shields = {PortalMod.COMMON:dict(),PortalMod.RARE:dict(),PortalMod.VERY_RARE:dict()}
+    self.forceAmps = {PortalMod.COMMON:dict(),PortalMod.RARE:dict(),PortalMod.VERY_RARE:dict()}
+    self.heatSinks = {PortalMod.COMMON:dict(),PortalMod.RARE:dict(),PortalMod.VERY_RARE:dict()}
+    self.linkAmplifiers = {PortalMod.COMMON:dict(),PortalMod.RARE:dict(),PortalMod.VERY_RARE:dict()}
+    self.multihacks = {PortalMod.COMMON:dict(),PortalMod.RARE:dict(),PortalMod.VERY_RARE:dict()}
+    self.turrets = {PortalMod.COMMON:dict(),PortalMod.RARE:dict(),PortalMod.VERY_RARE:dict()}
     self.resetStats()
     
   def processGameBasket(self, result):
@@ -88,27 +88,42 @@ class Inventory(dict):
       for guid in gameBasket["deletedEntityGuids"]:
         try:
           item = self[guid]
+          del(self[guid])
           if(isinstance(item, Burster)):
-            self.numBursters[item.level] -= 1
+            del(self.bursters[item.level][guid])
             self.stats["bursters"][item.level]["-"] += 1
           elif(isinstance(item, Resonator)):
-            self.numResos[item.level] -= 1
+            del(self.resonators[item.level][guid])
             self.stats["resos"][item.level]["-"] += 1
           elif(isinstance(item, PowerCube)):
-            self.numCubes[item.level] -= 1
+            del(self.cubes[item.level][guid])
             self.stats["cubes"][item.level]["-"] += 1
           elif(isinstance(item, Media)):
-            self.numMedias[item.level] -= 1
+            del(self.medias[item.level][guid])
             self.stats["medias"][item.level]["-"] += 1
           elif(isinstance(item, PortalKey)):
             self.numKeys -= 1
           elif(isinstance(item, Shield)):
-            self.numShields[item.rarity] -= 1;
+            del(self.shields[item.rarity][guid])
             self.stats["shields"][item.rarity]["-"] += 1
+          elif(isinstance(item, ForceAmp)):
+            del(self.forceAmps[item.rarity][guid])
+            self.stats["forceamps"][item.rarity]["-"] += 1
+          elif(isinstance(item, HeatSink)):
+            del(self.heatSinks[item.rarity][guid])
+            self.stats["heatsinks"][item.rarity]["-"] += 1
+          elif(isinstance(item, LinkAmplifier)):
+            del(self.linkAmplifiers[item.rarity][guid])
+            self.stats["linkamplifiers"][item.rarity]["-"] += 1
+          elif(isinstance(item, MultiHack)):
+            del(self.multiHacks[item.rarity][guid])
+            self.stats["multihacks"][item.rarity]["-"] += 1
+          elif(isinstance(item, Turret)):
+            del(self.turrets[item.rarity][guid])
+            self.stats["turrets"][item.rarity]["-"] += 1
           elif(isinstance(item, FlipCard)):
-            self.numFlipCards[item.cardType] -= 1;
+            del(self.flipCards[item.cardType][guid])
             self.stats["flipcards"][item.cardType]["-"] += 1
-          del(self[guid])
         except KeyError:
           pass
     if("inventory" in gameBasket):
@@ -138,23 +153,27 @@ class Inventory(dict):
 
         if(resourceType == "EMP_BURSTER"):
           level = int(item[2]["resourceWithLevels"]["level"])
-          self[guid] = Burster(level)
-          self.numBursters[level] += 1
+          item = Burster(level)
+          self[guid] = item
+          self.bursters[level][guid] = item
           self.stats["bursters"][level]["+"] += 1
         elif(resourceType == "EMITTER_A"):
           level = int(item[2]["resourceWithLevels"]["level"])
-          self[guid] = Resonator(level)
-          self.numResos[level] += 1
+          item = Resonator(level)
+          self[guid] = item
+          self.resonators[level][guid] = item
           self.stats["resos"][level]["+"] += 1
         elif(resourceType == "POWER_CUBE"):
           level = int(item[2]["resourceWithLevels"]["level"])
-          self[guid] = PowerCube(level)
-          self.numCubes[level] += 1 
+          item = PowerCube(level)
+          self[guid] = item
+          self.cubes[level][guid] = item
           self.stats["cubes"][level]["+"] += 1
         elif(resourceType == "MEDIA"):
           level = int(item[2]["resourceWithLevels"]["level"])
-          self[guid] = Media(level)
-          self.numMedias[level] += 1 
+          item = Media(level)
+          self[guid] = item
+          self.medias[level][guid] = item
           self.stats["medias"][level]["+"] += 1
         elif(resourceType == "PORTAL_LINK_KEY"):
           self[guid] = PortalKey()
@@ -162,35 +181,43 @@ class Inventory(dict):
         elif(resourceType == "FLIP_CARD"):
           t = item[2]["flipCard"]["flipCardType"]
           if(t == "ADA"):
-            self[guid] = FlipCard(FlipCard.ADA)
-            self.numFlipCards[FlipCard.ADA] += 1;
+            item = FlipCard(FlipCard.ADA)
+            self[guid] = item
+            self.flipCards[FlipCard.ADA][guid] = item
           elif(t == "JARVIS"):
-            self[guid] = FlipCard(FlipCard.JARVIS)
-            self.numFlipCards[FlipCard.JARVIS] += 1;
+            item = FlipCard(FlipCard.JARVIS)
+            self[guid] = item
+            self.flipCards[FlipCard.JARVIS][guid] = item
           self.stats["shields"][self[guid].cardType]["+"] += 1
         elif(resourceType == "RES_SHIELD"):
-          self[guid] = Shield(rarity)
-          self.numShields[rarity] += 1;
+          item = Shield(rarity)
+          self[guid] = item
+          self.shields[rarity][guid] = item
           self.stats["shields"][rarity]["+"] += 1
         elif(resourceType == "HEATSINK"):
-          self[guid] = HeatSink(rarity)
-          self.numHeatSinks[rarity] += 1;
+          item = HeatSink(rarity)
+          self[guid] = item
+          self.heatSinks[rarity][guid] = item
           self.stats["heatsinks"][rarity]["+"] += 1
         elif(resourceType == "TURRET"):
-          self[guid] = Turret(rarity)
-          self.numTurrets[rarity] += 1;
+          item = Turret(rarity)
+          self[guid] = item
+          self.turrets[rarity][guid] = item
           self.stats["turrets"][rarity]["+"] += 1
         elif(resourceType == "LINK_AMPLIFIER"):
-          self[guid] = LinkAmplifier(rarity)
-          self.numLinkAmplifiers[rarity] += 1;
+          item = LinkAmplifier(rarity)
+          self[guid] = item
+          self.linkAmplifiers[rarity][guid] = item
           self.stats["linkamplifiers"][rarity]["+"] += 1
         elif(resourceType == "FORCE_AMP"):
-          self[guid] = ForceAmp(rarity)
-          self.numForceAmps[rarity] += 1;
+          item = ForceAmp(rarity)
+          self[guid] = item
+          self.forceAmps[rarity][guid] = item
           self.stats["forceamps"][rarity]["+"] += 1
         elif(resourceType == "MULTIHACK"):
-          self[guid] = Multihack(rarity)
-          self.numMultihacks[rarity] += 1;
+          item = Multihack(rarity)
+          self[guid] = item
+          self.multihacks[rarity][guid] = item
           self.stats["multihacks"][rarity]["+"] += 1
         else:
           print item

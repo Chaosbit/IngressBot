@@ -22,6 +22,7 @@ PATHS = {
   "API" : {
     "HANDSHAKE" : "/handshake",
     "DROP_ITEM" : "/rpc/gameplay/dropItem",
+    "RECYCLE" : "/rpc/gameplay/recycleItem",
     "SAY" : "/rpc/player/say",
     "INVENTORY" : "/rpc/playerUndecorated/getInventory",
     "PLEXTS" : "/rpc/playerUndecorated/getPaginatedPlexts"

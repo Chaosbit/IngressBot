@@ -161,10 +161,15 @@ class Ingressbot(JabberBot):
         
   @botcmd
   def helo(self, mess, args):
+    """Says \"Hello world\""""
     return "Hello World"
   
-  @botcmd
+  @botcmd(hidden=True)
   def inv(self, mess, args):
+    """Displays information about your inventory.
+    Without a paramter the command will return the number of items in your inventory.
+    With paramater \"full\" the command will return detailed information about the items in your inventory.
+    """
     if self.cfg["master"] != mess.getFrom().getStripped():
       return None
     try:
@@ -180,8 +185,11 @@ class Ingressbot(JabberBot):
     finally:
       self.inventoryLock.release()
   
-  @botcmd
+  @botcmd(hidden=True)
   def stat(self, mess, args):
+    """Displays a statistic about the items you have recieved and spent.
+    The Parameter \"rst\" or \"reset\" resets the statistic.
+    """
     if self.cfg["master"] != mess.getFrom().getStripped():
       return None
     try:
@@ -205,6 +213,9 @@ class Ingressbot(JabberBot):
       
   @botcmd
   def seen(self, message, args):
+    """Displays where a player was last seen on the map.
+    Takes one or more nicknames (seperated by space) as parameter.
+    """
     if len(args.strip()) == 0:
       return "Please specify a nickname"
     
@@ -231,54 +242,59 @@ class Ingressbot(JabberBot):
   def invToStrings(self):
     lines = []
     line = "Bursters:\t\t"
-    for num in self.inventory.numBursters.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.bursters.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
 
     line = "Resonators:\t\t"
-    for num in self.inventory.numResos.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.resonators.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
 
     line = "Powercubes:\t\t"
-    for num in self.inventory.numCubes.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.cubes.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
 
     line = "Shield:\t\t"
-    for num in self.inventory.numShields.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.shields.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
     
     line = "Flipcards:\t\t"
-    for num in self.inventory.numFlipCards.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.flipCards.itervalues():
+      line += str(len(i)) + " "
     
     line = "ForceAmps:\t\t"
-    for num in self.inventory.numForceAmps.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.forceAmps.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
 
     line = "Heatsinks:\t\t"
-    for num in self.inventory.numHeatSinks.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.heatSinks.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
     
     line = "LinkAmps:\t\t"
-    for num in self.inventory.numLinkAmplifiers.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.linkAmplifiers.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
     
     line = "Multihacks:\t\t"
-    for num in self.inventory.numMultihacks.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.multihacks.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
     
     line = "Turrets:\t\t"
-    for num in self.inventory.numTurrets.itervalues():
-      line += str(num) + " "
+    for i in self.inventory.turrets.itervalues():
+      line += str(len(i)) + " "
     lines.append(line)
-    lines.append("Medias: " + str(sum(self.inventory.numMedias.values())))
+
+    numMedias = 0
+    for i in self.inventory.medias.itervalues():
+      numMedias += len(i)
+    lines.append("Medias: " + str(numMedias))
+    
     lines.append("Keys: " + str(self.inventory.numKeys))
     lines.append("Total: " + str(len(self.inventory)))
     return lines
@@ -345,7 +361,7 @@ class Ingressbot(JabberBot):
     if(len(lines) == 1):
       lines.append("Nothing happened")
     return lines
-
+  
 def main(argv=None):
   if argv is None:
     argv = sys.argv
