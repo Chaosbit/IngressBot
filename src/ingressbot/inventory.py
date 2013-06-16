@@ -25,6 +25,10 @@ class Resonator(LevelEntity):
 class PowerCube(LevelEntity):
   def __init__(self, level):
     super(PowerCube, self).__init__(level)
+    
+class Media(LevelEntity):
+  def __init__(self, level):
+    super(Media, self).__init__(level)
         
 class Shield(PortalMod):
   def __init__(self, rarity):
@@ -63,6 +67,7 @@ class Inventory(dict):
     self.numBursters = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
     self.numResos = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
     self.numCubes = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
+    self.numMedias = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
     self.numFlipCards = {FlipCard.ADA : 0, FlipCard.JARVIS : 0}
     self.numShields = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
     self.numForceAmps = {PortalMod.COMMON : 0, PortalMod.RARE : 0, PortalMod.VERY_RARE : 0}
@@ -92,6 +97,9 @@ class Inventory(dict):
           elif(isinstance(item, PowerCube)):
             self.numCubes[item.level] -= 1
             self.stats["cubes"][item.level]["-"] += 1
+          elif(isinstance(item, Media)):
+            self.numMedias[item.level] -= 1
+            self.stats["medias"][item.level]["-"] += 1
           elif(isinstance(item, PortalKey)):
             self.numKeys -= 1
           elif(isinstance(item, Shield)):
@@ -143,6 +151,11 @@ class Inventory(dict):
           self[guid] = PowerCube(level)
           self.numCubes[level] += 1 
           self.stats["cubes"][level]["+"] += 1
+        elif(resourceType == "MEDIA"):
+          level = int(item[2]["resourceWithLevels"]["level"])
+          self[guid] = Media(level)
+          self.numMedias[level] += 1 
+          self.stats["medias"][level]["+"] += 1
         elif(resourceType == "PORTAL_LINK_KEY"):
           self[guid] = PortalKey()
           self.numKeys += 1
@@ -185,67 +198,13 @@ class Inventory(dict):
       self.resetStats()
     self.lastQueryTimestamp = timestamp
 
-  def toStrings(self):
-    lines = []
-    line = "Bursters:\t\t"
-    for num in self.numBursters.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-
-    line = "Resonators:\t\t"
-    for num in self.numResos.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-
-    line = "Powercubes:\t\t"
-    for num in self.numCubes.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-
-    line = "Shield:\t\t"
-    for num in self.numShields.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-    
-    line = "Flipcards:\t\t"
-    for num in self.numFlipCards.itervalues():
-      line += str(num) + " "
-    
-    line = "ForceAmps:\t\t"
-    for num in self.numForceAmps.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-
-    line = "Heatsinks:\t\t"
-    for num in self.numHeatSinks.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-    
-    line = "LinkAmps:\t\t"
-    for num in self.numLinkAmplifiers.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-    
-    line = "Multihacks:\t\t"
-    for num in self.numMultihacks.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-    
-    line = "Turrets:\t\t"
-    for num in self.numTurrets.itervalues():
-      line += str(num) + " "
-    lines.append(line)
-
-    lines.append("K: " + str(self.numKeys))
-    lines.append("Total: " + str(len(self)))
-    return lines
-  
   def resetStats(self):
     self.stats = {
       "startTime" : datetime.datetime.now(),
       "bursters" : {1: {"+" : 0, "-" : 0}, 2: {"+" : 0, "-" : 0}, 3: {"+" : 0, "-" : 0}, 4: {"+" : 0, "-" : 0}, 5: {"+" : 0, "-" : 0}, 6: {"+" : 0, "-" : 0}, 7: {"+" : 0, "-" : 0}, 8: {"+" : 0, "-" : 0}},
       "resos" : {1: {"+" : 0, "-" : 0}, 2: {"+" : 0, "-" : 0}, 3: {"+" : 0, "-" : 0}, 4: {"+" : 0, "-" : 0}, 5: {"+" : 0, "-" : 0}, 6: {"+" : 0, "-" : 0}, 7: {"+" : 0, "-" : 0}, 8: {"+" : 0, "-" : 0}},
       "cubes" : {1: {"+" : 0, "-" : 0}, 2: {"+" : 0, "-" : 0}, 3: {"+" : 0, "-" : 0}, 4: {"+" : 0, "-" : 0}, 5: {"+" : 0, "-" : 0}, 6: {"+" : 0, "-" : 0}, 7: {"+" : 0, "-" : 0}, 8: {"+" : 0, "-" : 0}},
+      "medias" : {1: {"+" : 0, "-" : 0}, 2: {"+" : 0, "-" : 0}, 3: {"+" : 0, "-" : 0}, 4: {"+" : 0, "-" : 0}, 5: {"+" : 0, "-" : 0}, 6: {"+" : 0, "-" : 0}, 7: {"+" : 0, "-" : 0}, 8: {"+" : 0, "-" : 0}},
       "flipcards" : {FlipCard.ADA : {"+" : 0, "-" : 0}, FlipCard.JARVIS : {"+" : 0, "-" : 0}},
       "shields" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},
       "forceamps" : {PortalMod.COMMON : {"+" : 0, "-" : 0}, PortalMod.RARE : {"+" : 0, "-" : 0}, PortalMod.VERY_RARE : {"+" : 0, "-" : 0}},

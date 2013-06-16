@@ -94,7 +94,7 @@ class Api(object):
     try:
       handshakeResult = json.loads(request.content.replace("while(1);", ""))["result"]
     except:
-      raise RuntimeError("Authentication with Ingress severs failed for unknown reason.\n" + "headers: " + request.headers + "\ncontent: " + request.content)
+      raise RuntimeError("Authentication with Ingress severs failed for unknown reason.")
     if(handshakeResult["versionMatch"] != "CURRENT"):
       raise RuntimeError("Software version not up-to-date")
     if("xsrfToken" not in handshakeResult):
