@@ -181,7 +181,7 @@ class Ingressbot(JabberBot):
       self.inventoryLock.release()
   
   @botcmd
-  def stat(self, message, args):
+  def stat(self, mess, args):
     if self.cfg["master"] != mess.getFrom().getStripped():
       return None
     try:
