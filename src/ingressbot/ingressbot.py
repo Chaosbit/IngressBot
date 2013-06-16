@@ -6,6 +6,7 @@ import json
 import logging
 import logging.handlers
 import os.path
+from pickle import Pickler, Unpickler
 import signal
 import sys
 from threading import Lock, Thread
@@ -370,9 +371,9 @@ def main(argv=None):
 
     bot = Ingressbot(pwd, cfg)
     if daemonize:
-      daemon = daemon.runner.DaemonRunner(bot)
-      daemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
-      daemon.do_action()
+      myDaemon = daemon.runner.DaemonRunner(bot)
+      myDaemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
+      myDaemon.do_action()
     else:
       bot.run()
   except Exception as e:
