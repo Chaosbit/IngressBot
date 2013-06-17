@@ -18,7 +18,7 @@ from Thread import TimerThread
 
 class Ingressbot(JabberBot):
 
-  def __init__(self, pwd, cfg):
+  def __init__(self, pwd, cfg, logHandler=None):
     super(Ingressbot, self).__init__(username=pwd["jabber"]["user"], password=pwd["jabber"]["password"], acceptownmsgs=True, command_prefix=".")
     self.pwd = pwd
     self.cfg = cfg
@@ -33,8 +33,8 @@ class Ingressbot(JabberBot):
     self.playerHistory = dict()
     self.threads = []
     self.lastChatTimestamp = -1
-    self.log.addHandler(logging.StreamHandler())
-    self.log.setLevel(logging.INFO)
+    if logHandler is not None:
+      self.log.addHandler(logHandler)
     
   def run(self):
     self.api = Api(self.pwd["ingress"]["userEmail"], self.pwd["ingress"]["userPassword"])
@@ -63,6 +63,13 @@ class Ingressbot(JabberBot):
   def callback_message(self, conn, message):
     message.getFrom().setResource(None)
     return super(Ingressbot, self).callback_message(conn, message)
+  
+  def serve_forever(self, connect_callback=None, disconnect_callback=None):
+    try:
+      return super(Ingressbot, self).serve_forever(connect_callback, disconnect_callback)
+    except Exception as e:
+      self.logger.critical("Exception: " + str(type(e)) + ": " + e.message)
+      self.logger.critical("Stacktrace: " + traceback.format_exc())
     
   def stop(self):
     try:
@@ -373,11 +380,12 @@ def main(argv=None):
 
   logger = logging.getLogger("ingressbot")
   if daemonize:
-    syslogHandler = logging.handlers.SysLogHandler(address="/dev/log", facility=logging.handlers.SysLogHandler.LOG_DAEMON)
-    syslogHandler.setFormatter(logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s', '%b %e %H:%M:%S'))
-    logger.addHandler(syslogHandler)
+    handler = logging.handlers.SysLogHandler(address="/dev/log", facility=logging.handlers.SysLogHandler.LOG_DAEMON)
+    handler.setFormatter(logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s', '%b %e %H:%M:%S'))
+    
   else:
-    logger.addHandler(logging.StreamHandler())
+    handler = logging.StreamHandler()
+  logger.addHandler(handler)
   
   try:
     with open(os.path.expanduser("~/.ingressbot.pwd"), "rb") as f:
@@ -385,8 +393,9 @@ def main(argv=None):
     with open(os.path.expanduser("~/.ingressbot.cfg"), "rb") as f:
       cfg = json.load(f)
 
-    bot = Ingressbot(pwd, cfg)
+    bot = Ingressbot(pwd, cfg, handler)  
     if daemonize:
+      bot = Ingressbot(pwd, cfg, syslogHandler)
       myDaemon = daemon.runner.DaemonRunner(bot)
       myDaemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
       myDaemon.do_action()
