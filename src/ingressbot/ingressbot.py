@@ -395,7 +395,6 @@ def main(argv=None):
 
     bot = Ingressbot(pwd, cfg, handler)  
     if daemonize:
-      bot = Ingressbot(pwd, cfg, syslogHandler)
       myDaemon = daemon.runner.DaemonRunner(bot)
       myDaemon.daemon_context.signal_map[signal.SIGTERM] = lambda signal, frame : bot.stop()
       myDaemon.do_action()
