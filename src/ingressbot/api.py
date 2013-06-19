@@ -56,7 +56,7 @@ class Api(object):
       
   def authApi(self, email, password):
     authParams = {"Email":   email, "Passwd":  password, "service": "ah", "source":  "IngressBot", "accountType": "HOSTED_OR_GOOGLE"}
-    request =  requests.post(URLS["CLIENT_LOGIN"], data=authParams)
+    request =  requests.post(URLS["CLIENT_LOGIN"], allow_redirects=False, data=authParams)
     status = int(request.status_code)
     response = dict(x.split("=") for x in request.content.split("\n") if x)
     if(status == 200):
@@ -87,11 +87,11 @@ class Api(object):
     else:
       raise RuntimeError("Authentication failed: Bad Response")
     
-    request = requests.get(URLS["GAME_API"] + PATHS["LOGIN"], params={"auth" : authToken})
+    request = requests.get(URLS["GAME_API"] + PATHS["LOGIN"], allow_redirects=False, params={"auth" : authToken})
     self.cookiesApi = request.cookies
 
     urlParams = {"json" : json.dumps(HANDSHAKE_PARAMS)}
-    request = requests.get(URLS["GAME_API"] + PATHS["API"]["HANDSHAKE"], verify=False, params=urlParams, headers=self.headers["HANDSHAKE"], cookies=self.cookiesApi)
+    request = requests.get(URLS["GAME_API"] + PATHS["API"]["HANDSHAKE"], verify=False, allow_redirects=False, params=urlParams, headers=self.headers["HANDSHAKE"], cookies=self.cookiesApi)
     try:
       handshakeResult = json.loads(request.content.replace("while(1);", ""))["result"]
     except:
@@ -156,7 +156,7 @@ class Api(object):
     self.cookiesIntel = request.cookies
   
   def getInventory(self, lastQueryTimestamp):
-    request = requests.post(URLS["GAME_API"] + PATHS["API"]["INVENTORY"], headers = self.headers["API"], data = json.dumps({"params" : {"lastQueryTimestamp": lastQueryTimestamp}}), cookies=self.cookiesApi)
+    request = requests.post(URLS["GAME_API"] + PATHS["API"]["INVENTORY"], allow_redirects=False, headers=self.headers["API"], data=json.dumps({"params" : {"lastQueryTimestamp": lastQueryTimestamp}}), cookies=self.cookiesApi)
     try:
       return json.loads(request.content.replace("while(1);", ""))
     except:
@@ -175,7 +175,7 @@ class Api(object):
       "maxTimestampMs" : maxTimestamp,
       "method" : "dashboard.getPaginatedPlextsV2"
     }
-    request = requests.post(URLS["INGRESS"] + PATHS["INTEL"]["PLEXTS"], cookies=self.cookiesIntel, headers=self.headers["INTEL"], data = json.dumps(payload))
+    request = requests.post(URLS["INGRESS"] + PATHS["INTEL"]["PLEXTS"], allow_redirects=False, cookies=self.cookiesIntel, headers=self.headers["INTEL"], data = json.dumps(payload))
     try:
       return json.loads(request.content)
     except:
@@ -183,4 +183,4 @@ class Api(object):
       raise
     
   def say(self, msg, factionOnly=True):
-    requests.post(URLS["GAME_API"] + PATHS["API"]["SAY"], headers = self.headers["API"], data = json.dumps({"params" : {"factionOnly": factionOnly, "message" : msg}}), cookies=self.cookiesApi)
+    requests.post(URLS["GAME_API"] + PATHS["API"]["SAY"], allow_redirects=False, headers=self.headers["API"], data=json.dumps({"params" : {"factionOnly": factionOnly, "message" : msg}}), cookies=self.cookiesApi)
