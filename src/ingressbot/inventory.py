@@ -115,7 +115,7 @@ class Inventory(dict):
           elif(isinstance(item, LinkAmplifier)):
             del(self.linkAmplifiers[item.rarity][guid])
             self.stats["linkamplifiers"][item.rarity]["-"] += 1
-          elif(isinstance(item, MultiHack)):
+          elif(isinstance(item, Multihack)):
             del(self.multiHacks[item.rarity][guid])
             self.stats["multihacks"][item.rarity]["-"] += 1
           elif(isinstance(item, Turret)):
