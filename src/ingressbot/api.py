@@ -160,7 +160,9 @@ class Api(object):
     try:
       return json.loads(request.content.replace("while(1);", ""))
     except:
-      
+      self.logger.critical("status: " + str(request.status_code))
+      self.logger.critical("headers: " + str(request.headers))
+      self.logger.critical("content: " + str(request.content))
       raise
     
   def getMessages(self, bounds, minTimestamp, maxTimestamp, maxItems, factionOnly):
